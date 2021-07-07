@@ -12,7 +12,6 @@ VCC...............5V
 #include <Servo.h>
 #include <IRremote.h>
 #include "HCPCA9685.h"
-#include <string>
 
 // 3 feet on ground: https://www.youtube.com/watch?v=hDyqtbeffLg
 // 4 feet on ground: https://www.youtube.com/watch?v=qDp4ZnVyZ3E
@@ -22,14 +21,19 @@ VCC...............5V
 #define  I2CAdd 0x40
 
 /* Create an instance of the library */
-//HCPCA9685 HCPCA9685(I2CAdd);
+HCPCA9685 HCPCA9685(I2CAdd);
 
 /* Hexapod_Muscle
   An abstract level for the control of 18 muscles.
   Call muscle_move to write angle on a specific muscle.*/
+
+int angle_map(int input) {
+  // Assume input range 0-180
+  return 30 + 2*input;
+}
+
 class Hexapod_Muscle {
 private:
-  HCPCA9685 HCPCA9685(I2CAdd);
   Servo muscle_16;
   Servo muscle_17;
 public:
@@ -49,10 +53,10 @@ public:
       
     if (leg < 5) {
       int muscle = leg * 3 + muscle_no;
-      HCPCA9685.Servo(muscle, angle);
+      HCPCA9685.Servo(muscle, angle_map(angle));
     } else if (leg == 5) {
       if (muscle_no == 0)
-        HCPCA9685.Servo(15, angle);
+        HCPCA9685.Servo(15, angle_map(angle));
       else if (muscle_no == 1)
         muscle_16.write(angle);
       else if (muscle_no == 2)
@@ -68,7 +72,7 @@ class Hexapod_Pose {
 private:
   Hexapod_Muscle hex_muscle;
   const int move_angle = 15;
-  const int lift_angle = 45;
+  const int lift_angle = 60;
 public:
   void setup() {
     hex_muscle.setup();
@@ -103,13 +107,26 @@ public:
     // leg 0-2 left side
     // leg 3-5 right side
     int muscle_zero_side_angle;
-    if (leg <= 2) // left side
-      muscle_zero_side_angle = move_angle;
-    else          // right side
-      muscle_zero_side_angle = -move_angle;
     int muscle_zero_neutral = 90;
     int muscle_one_ground = 15;
     int muscle_two_ground = 105;
+    int lift_side_angle;
+    int netural_pull_one = 90;
+    int netural_pull_two = 180;
+    if (leg <= 2) {
+      // left side
+      muscle_zero_side_angle = move_angle;
+      lift_side_angle = lift_angle;
+    } else {         
+      // right side
+      muscle_zero_side_angle = -move_angle;
+      lift_side_angle = -lift_angle;
+      muscle_one_ground = 180-muscle_one_ground;
+      muscle_two_ground = 180-muscle_two_ground;
+      netural_pull_one  = 180-netural_pull_one;
+      netural_pull_two  = 180-netural_pull_two;
+    }
+    
 
     switch(pose_code) {
       case 0:
@@ -133,20 +150,20 @@ public:
       case 3:
         // Backward, off ground
         hex_muscle.muscle_move(leg, 0, muscle_zero_neutral + muscle_zero_side_angle);
-        hex_muscle.muscle_move(leg, 1, muscle_one_ground + lift_angle);
-        hex_muscle.muscle_move(leg, 2, muscle_two_ground + lift_angle);
+        hex_muscle.muscle_move(leg, 1, muscle_one_ground + lift_side_angle);
+        hex_muscle.muscle_move(leg, 2, muscle_two_ground + lift_side_angle);
         break;
       case 4:
         // Forward, off ground
         hex_muscle.muscle_move(leg, 0, muscle_zero_neutral - muscle_zero_side_angle);
-        hex_muscle.muscle_move(leg, 1, muscle_one_ground + lift_angle);
-        hex_muscle.muscle_move(leg, 2, muscle_two_ground + lift_angle);
+        hex_muscle.muscle_move(leg, 1, muscle_one_ground + lift_side_angle);
+        hex_muscle.muscle_move(leg, 2, muscle_two_ground + lift_side_angle);
         break;
       case 5:
         // Neutral, pull
         hex_muscle.muscle_move(leg, 0, muscle_zero_neutral);
-        hex_muscle.muscle_move(leg, 1, 90);
-        hex_muscle.muscle_move(leg, 2, 180);
+        hex_muscle.muscle_move(leg, 1, netural_pull_one);
+        hex_muscle.muscle_move(leg, 2, netural_pull_two);
         break;
       case 6:
         // Netural, push
@@ -210,7 +227,7 @@ void loop()
     // Walk loop
     hex_pose.walk_pose(walk);
     walk = (walk + 1) % 4;
-    delay(400);
+    delay(200);
   } else if (mode == 2) {
     // Jump once
     hex_pose.jump_pose(jump);

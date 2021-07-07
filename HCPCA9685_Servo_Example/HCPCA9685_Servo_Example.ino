@@ -46,6 +46,7 @@ REASON WHATSOEVER.
 
 /* Include the HCPCA9685 library */
 #include "HCPCA9685.h"
+#include <Servo.h>
 
 /* I2C slave address for the device/module. For the HCMODU0097 the default I2C address
    is 0x40 */
@@ -54,12 +55,13 @@ REASON WHATSOEVER.
 
 /* Create an instance of the library */
 HCPCA9685 HCPCA9685(I2CAdd);
-
+Servo motor;
 
 void setup() 
 {
   /* Initialise the library and set it to 'servo mode' */ 
   HCPCA9685.Init(SERVO_MODE);
+  motor.attach(3);
 
   /* Wake the device up */
   HCPCA9685.Sleep(false);
@@ -75,6 +77,9 @@ void loop()
      values so that the servo can sweep though its full range without hitting
      the end stops. You can adjust the min & max positions by altering 
      the trim values in the libraries HCPCA9685.h file*/
+  motor.write(90);
+  HCPCA9685.Servo(1, 390);
+  HCPCA9685.Servo(2, 225);
   for(Pos = 10; Pos < 450; Pos+=10)
   {
     /* This function sets the servos position. It takes two parameters, 
