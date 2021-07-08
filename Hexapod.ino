@@ -26,16 +26,14 @@ HCPCA9685 HCPCA9685(I2CAdd);
 /* Hexapod_Muscle
   An abstract level for the control of 18 muscles.
   Call muscle_move to write angle on a specific muscle.*/
-
-int angle_map(int input) {
-  // Assume input range 0-180
-  return 30 + 2*input;
-}
-
 class Hexapod_Muscle {
 private:
   Servo muscle_16;
   Servo muscle_17;
+  int angle_map(int input) {
+    // Assume input range 0-180
+    return 30 + 2*input;
+  }
 public:
   void setup() {
     HCPCA9685.Init(SERVO_MODE);
